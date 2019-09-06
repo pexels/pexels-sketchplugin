@@ -1,0 +1,28 @@
+{
+  "name": "sketch-pexels",
+  "version": "0.1.0",
+  "description": "A Pexels plugin for Sketch",
+  "engines": {
+    "sketch": ">=3.0"
+  },
+  "skpm": {
+    "manifest": "src/manifest.json",
+    "main": "pexels.sketchplugin",
+    "assets": [
+      "assets/**/*"
+    ]
+  },
+  "scripts": {
+    "build": "skpm-build",
+    "watch": "skpm-build --watch",
+    "start": "skpm-build --watch --run",
+    "postinstall": "npm run build && skpm-link"
+  },
+  "devDependencies": {
+    "@skpm/builder": "^0.7.4"
+  },
+  "author": "Ale Muñoz <ale@sketch.com>",
+  "dependencies": {
+    "@skpm/fs": "^0.2.0"
+  }
+}

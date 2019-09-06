@@ -1,0 +1,34 @@
+{
+  "name": "Pexels",
+  "compatibleVersion": 3,
+  "bundleVersion": 1,
+  "icon": "icon.png",
+  "suppliesData" : true,
+  "commands": [
+    {
+      "name": "View Photo on Pexels",
+      "identifier": "imageDetails",
+      "script": "DataProvider.js",
+      "handler": {
+          "run": "onImageDetails"
+      }
+    },
+    {
+      "script" : "DataProvider.js",
+      "handlers" : {
+        "actions" : {
+          "Startup" : "onStartup",
+          "Shutdown" : "onShutdown",
+          "SupplyRandomPhoto" : "onSupplyRandomPhoto",
+          "SearchPhoto" : "onSearchPhoto"
+        }
+      }
+    }
+  ],
+  "menu": {
+    "title": "Pexels",
+    "items": [
+        "imageDetails"
+    ]
+  }
+}

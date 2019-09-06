@@ -135,7 +135,7 @@ function process (data, dataKey, index, item, frame) {
   // supply the data
   // TODO: use the URL that's good for the frame, choosing from
   // original, large2x, large, medium, small, portrait, landscape, tiny
-  return getImageFromURL(data.src.large, frame).then(imagePath => {
+  return getImageFromURL(data.src.original, frame).then(imagePath => {
     if (!imagePath) {
       // TODO: something wrong happened, show something to the user
       return
@@ -152,9 +152,11 @@ function process (data, dataKey, index, item, frame) {
 }
 
 function getImageFromURL (url, frame) {
-  console.log(`getImageFromURL(${url})`)
-  return fetch(url)
-  // return fetch(`${url}&fit=min&w=${frame.width*4}&h=${frame.height*4}`)
+  let imageURL = url
+  imageURL += `?fit=crop&dpr=2&h=${frame.height}&w=${frame.width}`
+  // imageURL += `?auto=compress&cs=tinysrgb&dpr=2&h=${frame.height}&w=${frame.width}`
+  console.log(`Requesting image from ${imageURL}`)
+  return fetch(imageURL)
     .then(res => res.blob())
     // TODO: use imageData directly, once #19391 is implemented
     .then(saveTempFileFromImageData)

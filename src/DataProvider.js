@@ -1,14 +1,20 @@
-const os = require('os')
-const path = require('path')
-const util = require('util')
-const fs = require('@skpm/fs')
 const sketch = require('sketch')
-const { getImagesURLsForItems } = require('./pexels')
-
 const { DataSupplier, UI, Settings } = sketch
+const { toArray } = require('util')
 
 const SETTING_KEY = 'pexels.photo.id'
-const FOLDER = path.join(os.tmpdir(), 'com.sketchapp.pexels-plugin')
+const API_KEY = '563492ad6f91700001000001baf1bd40e4ef4d9fbb65204f4377abf9'
+const API_ENDPOINT = 'https://api.pexels.com/v1'
+const apiOptions = {
+  'headers': { 'Authorization': API_KEY }
+}
+
+import insertImage, { getImageFromURL } from 'sketch-image-downloader'
+
+// console.oldLog = console.log
+// console.log = function(txt){
+//   console.oldLog(`${new Date().toISOString()}: ${txt}`)
+// }
 
 export function onStartup () {
   DataSupplier.registerDataSupplier('public.image', 'Random Photo', 'SupplyRandomPhoto')
@@ -17,37 +23,50 @@ export function onStartup () {
 
 export function onShutdown () {
   DataSupplier.deregisterDataSuppliers()
-  try {
-    if (fs.existsSync(FOLDER)) {
-      fs.rmdirSync(FOLDER)
-    }
-  } catch (err) {
-    console.error(err)
-  }
+  // try {
+  //   if (fs.existsSync(FOLDER)) {
+  //     fs.rmdirSync(FOLDER)
+  //   }
+  // } catch (err) {
+  //   console.error(err)
+  // }
 }
 
 export function onSupplyRandomPhoto (context) {
-  setImageForContext(context)
-}
+  const dataKey = context.data.key
+  const items = toArray(context.data.items).map(sketch.fromNative)
 
-function containsPhotoId (searchTerm) {
-  return searchTerm.substr(0, 3) === 'id:' || searchTerm.indexOf('pexels.com/photo/') !== -1
-}
-
-function extractPhotoId (searchTerm) {
-  if (searchTerm.substr(0, 3) === 'id:') {
-    return searchTerm.substr(3)
-  }
-
-  // Extract photoId from a "pexels.com/photo/image-title-<photoId>" URL
-  // Allows a URL with or without http/https
-  // It also strips out anything after the photoId
-  let photoId = searchTerm.substr(searchTerm.indexOf('unsplash.com/photos/') + 20)
-  const artifactLocation = photoId.search(/[^a-z0-9_-]/i)
-  return artifactLocation !== -1 ? photoId.substr(0, artifactLocation) : photoId
+  let action = `/curated?per_page=${items.length}&page=${Math.floor(Math.random()*1000)}`
+  let url = API_ENDPOINT + action
+  UI.message('🕑 Downloading…')
+  fetch(url, apiOptions)
+    .then(response => response.json())
+    .then(json => {
+      if (json.errors) {
+        return Promise.reject(json.errors[0])
+      }
+      json.photos.forEach((photo, index) => {
+        let layer = items[index]
+        let w = layer.frame.width
+        let h = layer.frame.height
+        let max = Math.max(w,h)
+        let imageURL = photo.src.original + `?auto=compress&cs=tinysrgb&dpr=2&w=${w}&h=${h}`
+        getImageFromURL(imageURL).then(imagePath => {
+          DataSupplier.supplyDataAtIndex(dataKey, imagePath, index)
+          UI.message('📷 by ' + photo.photographer + ' on Pexels')
+          // Store photo ID on layer
+          if (layer.type !== 'DataOverride') {
+            Settings.setLayerSettingForKey(layer, SETTING_KEY, photo.id)
+          }
+        })
+      })
+    })
 }
 
 export function onSearchPhoto (context) {
+  const dataKey = context.data.key
+  const items = toArray(context.data.items).map(sketch.fromNative)
+
   // 21123: retrieve previous search term. If multiple layers are selected, find the first search term
   // in the group…
   let selectedLayers = sketch.getSelectedDocument().selectedLayers.layers
@@ -55,35 +74,57 @@ export function onSearchPhoto (context) {
   let firstPreviousTerm = previousTerms.find(term => term !== undefined)
   let previousTerm = firstPreviousTerm || 'People'
   // TODO: support multiple selected layers with different search terms for each
+
+  let searchTerm
   if (sketch.version.sketch < 53) {
-    const searchTerm = UI.getStringFromUser('Search Pexels for…', previousTerm).trim()
-    if (searchTerm !== 'null') {
-      selectedLayers.forEach(layer => {
-        Settings.setLayerSettingForKey(layer, 'pexels.search.term', searchTerm)
-      })
-      if (containsPhotoId(searchTerm)) {
-        setImageForContext(context, null, extractPhotoId(searchTerm))
-      } else {
-        setImageForContext(context, searchTerm.replace(/\s+/g, '-').toLowerCase())
-      }
-    }
+    searchTerm = UI.getStringFromUser('Search Pexels for…', previousTerm).trim()
   } else {
     UI.getInputFromUser('Search Pexels for…',
       { initialValue: previousTerm },
-      (err, searchTerm) => {
+      (err, input) => {
         if (err) { return } // user hit cancel
-        if ((searchTerm = searchTerm.trim()) !== 'null') {
-          selectedLayers.forEach(layer => {
-            Settings.setLayerSettingForKey(layer, 'pexels.search.term', searchTerm)
-          })
-          if (containsPhotoId(searchTerm)) {
-            setImageForContext(context, null, extractPhotoId(searchTerm))
-          } else {
-            setImageForContext(context, searchTerm.replace(/\s+/g, '-').toLowerCase())
-          }
-        }
+        searchTerm = input.trim() 
       }
     )
+  }
+  if (searchTerm !== 'null') {
+    console.log(`Searching images for ${searchTerm}`)
+    selectedLayers.forEach(layer => {
+      Settings.setLayerSettingForKey(layer, 'pexels.search.term', searchTerm)
+    })
+    searchTerm = searchTerm.replace(/\s+/g, '+').toLowerCase()
+
+    // Do the actual download
+    let action = `/search?query=${searchTerm}&per_page=${items.length}&page=1`
+    if (containsPhotoId(searchTerm)) {
+      action = `/photos/${extractPhotoId(searchTerm)}`
+    }
+    let url = API_ENDPOINT + action
+    console.log(url)
+    UI.message('🕑 Downloading…')
+    fetch(url, apiOptions)
+      .then(response => response.json())
+      .then(json => {
+        if (json.errors) {
+          return Promise.reject(json.errors[0])
+        }
+        let photos = containsPhotoId(searchTerm) ? [json] : json.photos
+        photos.forEach((photo, index) => {
+          let layer = items[index]
+          let w = layer.frame.width
+          let h = layer.frame.height
+          let max = Math.max(w,h)
+          let imageURL = photo.src.original + `?auto=compress&cs=tinysrgb&dpr=2&w=${w}&h=${h}`
+          getImageFromURL(imageURL).then(imagePath => {
+            DataSupplier.supplyDataAtIndex(dataKey, imagePath, index)
+            UI.message('📷 by ' + photo.photographer + ' on Pexels')
+            // Store photo ID on layer
+            if (layer.type !== 'DataOverride') {
+              Settings.setLayerSettingForKey(layer, SETTING_KEY, photo.id)
+            }
+          })
+        })
+      })
   }
 }
 
@@ -111,75 +152,14 @@ export default function onImageDetails () {
   }
 }
 
-function setImageForContext (context, searchTerm, photoId) {
-  const dataKey = context.data.key
-  const items = util.toArray(context.data.items).map(sketch.fromNative)
-
-  UI.message('🕑 Downloading…')
-  getImagesURLsForItems(items, { searchTerm, photoId })
-    .then(res => Promise.all(res.map(({ data, item, index, frame, error }) => {
-      if (error) {
-        UI.message(error)
-        console.error(error)
-      } else {
-        process(data, dataKey, index, item, frame)
-      }
-    })))
-    .catch(e => {
-      UI.message(e)
-      console.error(e)
-    })
+function containsPhotoId (searchTerm) {
+  return searchTerm.substr(0, 3) === 'id:' || searchTerm.indexOf('pexels.com/photo/') !== -1
 }
 
-function process (data, dataKey, index, item, frame) {
-  // supply the data
-  // TODO: use the URL that's good for the frame, choosing from
-  // original, large2x, large, medium, small, portrait, landscape, tiny
-  return getImageFromURL(data.src.original, frame).then(imagePath => {
-    if (!imagePath) {
-      // TODO: something wrong happened, show something to the user
-      return
-    }
-    DataSupplier.supplyDataAtIndex(dataKey, imagePath, index)
-
-    // store where the image comes from, but only if this is a regular layer
-    if (item.type !== 'DataOverride') {
-      Settings.setLayerSettingForKey(item, SETTING_KEY, data.id)
-    }
-
-    UI.message('📷 by ' + data.photographer + ' on Pexels')
-  })
-}
-
-function getImageFromURL (url, frame) {
-  let imageURL = url
-  imageURL += `?fit=crop&dpr=2&h=${frame.height}&w=${frame.width}`
-  // imageURL += `?auto=compress&cs=tinysrgb&dpr=2&h=${frame.height}&w=${frame.width}`
-  console.log(`Requesting image from ${imageURL}`)
-  return fetch(imageURL)
-    .then(res => res.blob())
-    // TODO: use imageData directly, once #19391 is implemented
-    .then(saveTempFileFromImageData)
-    .catch((err) => {
-      console.error(err)
-      return context.plugin.urlForResourceNamed('placeholder.png').path()
-    })
-}
-
-function saveTempFileFromImageData (imageData) {
-  const guid = NSProcessInfo.processInfo().globallyUniqueString()
-  const imagePath = path.join(FOLDER, `${guid}.jpg`)
-  try {
-    fs.mkdirSync(FOLDER)
-  } catch (err) {
-    // probably because the folder already exists
-    // TODO: check that it is really because it already exists
-  }
-  try {
-    fs.writeFileSync(imagePath, imageData, 'NSData')
-    return imagePath
-  } catch (err) {
-    console.error(err)
-    return undefined
+function extractPhotoId (searchTerm) {
+  if (searchTerm.substr(0, 3) === 'id:') {
+    return searchTerm.substr(3)
+  } else {
+    return searchTerm.match(/([0-9]+)\//g)
   }
 }

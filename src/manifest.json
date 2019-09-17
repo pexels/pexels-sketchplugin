@@ -8,13 +8,13 @@
     {
       "name": "View Photo on Pexels",
       "identifier": "imageDetails",
-      "script": "DataProvider.js",
+      "script": "pexels.js",
       "handler": {
           "run": "onImageDetails"
       }
     },
     {
-      "script" : "DataProvider.js",
+      "script" : "pexels.js",
       "handlers" : {
         "actions" : {
           "Startup" : "onStartup",

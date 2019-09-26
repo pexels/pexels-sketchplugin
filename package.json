@@ -1,6 +1,6 @@
 {
   "name": "sketch-pexels",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A Pexels plugin for Sketch",
   "engines": {
     "sketch": ">=3.0"

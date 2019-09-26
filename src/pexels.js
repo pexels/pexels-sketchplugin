@@ -49,8 +49,7 @@ export function onSupplyRandomPhoto (context) {
         let layer = items[index]
         let w = layer.frame.width
         let h = layer.frame.height
-        let max = Math.max(w,h)
-        let imageURL = photo.src.original + `?auto=compress&cs=tinysrgb&dpr=2&w=${w}&h=${h}`
+        let imageURL = urlParametersFor(photo.src.original, w, h)
         getImageFromURL(imageURL).then(imagePath => {
           DataSupplier.supplyDataAtIndex(dataKey, imagePath, index)
           UI.message('📷 by ' + photo.photographer + ' on Pexels')
@@ -95,7 +94,8 @@ export function onSearchPhoto (context) {
     searchTerm = searchTerm.replace(/\s+/g, '+').toLowerCase()
 
     // Do the actual download
-    let action = `/search?query=${searchTerm}&per_page=${items.length}&page=1`
+    let page = Math.floor(Math.random() * 999)
+    let action = `/search?query=${searchTerm}&per_page=${items.length}&page=${page}`
     if (containsPhotoId(searchTerm)) {
       action = `/photos/${extractPhotoId(searchTerm)}`
     }
@@ -113,8 +113,7 @@ export function onSearchPhoto (context) {
           let layer = items[index]
           let w = layer.frame.width
           let h = layer.frame.height
-          let max = Math.max(w,h)
-          let imageURL = photo.src.original + `?auto=compress&cs=tinysrgb&dpr=2&w=${w}&h=${h}`
+          let imageURL = urlParametersFor(photo.src.original, w, h)
           getImageFromURL(imageURL).then(imagePath => {
             DataSupplier.supplyDataAtIndex(dataKey, imagePath, index)
             UI.message('📷 by ' + photo.photographer + ' on Pexels')
@@ -162,4 +161,8 @@ function extractPhotoId (searchTerm) {
   } else {
     return searchTerm.match(/([0-9]+)\//g)
   }
+}
+
+function urlParametersFor(url, w, h) {
+  return `${url}?auto=compress&cs=tinysrgb&dpr=2&w=${w}&h=${h}&fit=min`
 }

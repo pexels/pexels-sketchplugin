@@ -4,7 +4,7 @@
 
 ## Installation
 
-- [Download the latest version](https://github.com/BohemianCoding/pexels-sketchplugin/releases/latest/download/pexels.sketchplugin.zip).
+- [Download the latest version](https://github.com/pexels/pexels-sketchplugin/releases/latest/download/pexels.sketchplugin.zip).
 - Unzip & double click it to install.
 
 ## Features

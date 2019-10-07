@@ -21,8 +21,8 @@
   "devDependencies": {
     "@skpm/builder": "^0.7.4"
   },
-  "author": "Ale Muñoz <ale@sketch.com>",
-  "repository": "https://github.com/BohemianCoding/pexels-sketchplugin.git",
+  "author": "Pexels",
+  "repository": "https://github.com/pexels/pexels-sketchplugin.git",
   "dependencies": {
     "@skpm/fs": "^0.2.0",
     "sketch-image-downloader": "^1.0.1"

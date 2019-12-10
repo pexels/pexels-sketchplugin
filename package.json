@@ -2,6 +2,7 @@
   "name": "sketch-pexels",
   "version": "1.0.2",
   "description": "A Pexels plugin for Sketch",
+  "license": "MIT",
   "engines": {
     "sketch": ">=3.0"
   },
@@ -19,7 +20,8 @@
     "postinstall": "npm run build && skpm-link"
   },
   "devDependencies": {
-    "@skpm/builder": "^0.7.4"
+    "@skpm/builder": "^0.7.4",
+    "serialize-javascript": ">=2.1.1"
   },
   "author": "Pexels",
   "repository": "https://github.com/pexels/pexels-sketchplugin.git",

@@ -1,5 +1,3 @@
-[![Pexels Banner](docs/social-preview.png)](https://www.sketch.com/extensions/plugins/pexels/)
-
 # Pexels Plugin
 
 ## Installation
